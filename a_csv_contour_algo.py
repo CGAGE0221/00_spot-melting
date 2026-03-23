@@ -18,7 +18,8 @@ class ContourGenerator:
         self.inner_projection = inner_projection_offset
 
         # 遵循文献 B6 策略硬编码的常量
-        self.num_lines = 3
+        self.contour_offsets = [0.09, 0.18, 0.27]
+        self.num_lines = len(self.contour_offsets)
         self.line_spacing = 0.09
         self.spot_spacing = 0.10
         self.num_melt_groups = 8
@@ -97,16 +98,18 @@ class ContourGenerator:
         - 从最靠近 infill 的 contour group 开始排列（距离降序 → 越大的offset越靠近infill）
         """
         groups = []
-        for i in range(self.num_lines):
-            offset = self.inner_projection - i * self.line_spacing
-            if offset > 0:
-                buffered_geom = self.geometry.buffer(-offset)
-                if not buffered_geom.is_empty:
-                    rings = self._extract_rings(buffered_geom)
-                    if rings:
-                        groups.append({'distance': offset, 'rings': rings})
+        for offset in self.contour_offsets:
+            # Negative buffer means "toward material interior":
+            # outer boundary moves inward, while hole boundaries move outward.
+            buffered_geom = self.geometry.buffer(-offset)
+            if not buffered_geom.is_empty:
+                rings = self._extract_rings(buffered_geom)
+                if rings:
+                    groups.append({'distance': offset, 'rings': rings})
 
         # 文献: 从最靠近 infill 的开始 → offset 值最大的先扫
+        # 先走最靠近填充的一圈，再逐步向外到真实边界附近。
+        groups.sort(key=lambda x: x['distance'], reverse=True)
         groups.sort(key=lambda x: x['distance'], reverse=True)
         return groups
 

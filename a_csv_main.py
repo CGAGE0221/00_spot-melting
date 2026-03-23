@@ -1,6 +1,6 @@
 import csv
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Circle, Rectangle
 from shapely.geometry import Point
@@ -36,7 +36,7 @@ def load_experiment_csv(filename):
         with open(filename, "r", encoding="utf-8-sig") as f:
             reader = csv.reader(f)
             rows = list(reader)
-            start_row = 1 if not rows[0][1].replace(".", "").replace("-", "").isdigit() else 0
+            start_row = 1 if rows and not rows[0][1].replace(".", "").replace("-", "").isdigit() else 0
 
             for row in rows[start_row:]:
                 if len(row) < 12:
@@ -55,10 +55,10 @@ def load_experiment_csv(filename):
                     "ct_dwell": float(row[10]),
                     "inner_proj": float(row[11]),
                 })
-        print(f"✓ 成功加载 {len(configs)} 组环形实验配置")
+        print(f"[OK] 成功加载 {len(configs)} 组环形实验配置")
         return configs
     except Exception as e:
-        print(f"✗ 读取 CSV 失败: {e}")
+        print(f"[ERR] 读取 CSV 失败: {e}")
         return []
 
 
@@ -85,14 +85,14 @@ def create_template_csv(filename="annulus_experiment.csv"):
     ]
     with open(filename, "w", newline="", encoding="utf-8-sig") as f:
         csv.writer(f).writerows([headers] + data)
-    print(f"✓ 已在当前目录生成实验模板: {filename}")
+    print(f"[OK] 已生成模板文件: {filename}")
 
 
 def process_single_region(cfg, region_idx, j_max):
     print("\n" + "-" * 40)
     print(
-        f"【处理区域 {region_idx + 1}】中心坐标: ({cfg['cx']}, {cfg['cy']}) | "
-        f"内部投影偏移量: {cfg['inner_proj']} mm"
+        f"[区域 {region_idx + 1}] 中心=({cfg['cx']}, {cfg['cy']}), "
+        f"内部投影偏移量={cfg['inner_proj']} mm"
     )
 
     geom = create_annulus_geometry(cfg["cx"], cfg["cy"], cfg["r_in"], cfg["r_out"])
@@ -106,7 +106,7 @@ def process_single_region(cfg, region_idx, j_max):
 
     raw_indices, _ = filter_spots_in_geometry(spots, geom)
     if not raw_indices:
-        print("  [警告] 该几何体内未能生成有效的网格点。")
+        print("  [WARN] 该区域内没有有效网格点")
         return [], []
 
     contour_gen = ContourGenerator(
@@ -155,7 +155,7 @@ def append_path_with_jump(main_path, new_path, j_max):
 
 
 def visualize_result(square_size, final_path, filename="result"):
-    print(f"\n[-] 正在生成高分辨率可视化图片: {filename}.png")
+    print(f"\n[-] 正在生成可视化图片: {filename}.png")
     fig, ax = plt.subplots(figsize=(14, 14))
     ax.set_aspect("equal")
 
@@ -223,7 +223,7 @@ def visualize_result(square_size, final_path, filename="result"):
     ax.legend(loc="upper right", fontsize=9)
     plt.savefig(f"{filename}.png", dpi=300, bbox_inches="tight", facecolor="white")
     plt.close(fig)
-    print(f"✓ 图片已保存: {filename}.png")
+    print(f"[OK] 图片已保存: {filename}.png")
 
 
 def main():
@@ -266,7 +266,7 @@ def main():
     infill_count = sum(1 for p in global_path if p.get("type") == "infill")
     virt_count = sum(1 for p in global_path if p.get("is_virtual"))
     print(
-        f"✓ 实验矩阵生成完毕，总路径点数: {len(global_path)} "
+        f"[OK] 实验矩阵生成完毕, 总路径点数: {len(global_path)} "
         f"(轮廓: {contour_count} | 填充: {infill_count} | 虚拟/缓冲: {virt_count})"
     )
 
